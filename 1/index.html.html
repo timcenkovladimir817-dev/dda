@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор (Широкий формат)</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f6f9; --white: #ffffff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: #333; padding: 10px; } /* Уменьшил отступы body */
+        
+        /* КОНТЕЙНЕР НА ВСЮ ШИРИНУ */
+        .container { 
+            max-width: 98%; /* Почти на всю ширину */
+            margin: 0 auto; 
+            background: var(--white); 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            overflow: hidden; 
+        }
+        
+        header { background: var(--primary); color: white; padding: 15px 20px; text-align: center; }
+        header h1 { font-size: 1.5em; margin-bottom: 4px; }
+        header p { font-size: 0.9em; opacity: 0.8; }
+
+        .tabs { display: flex; background: #34495e; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; color: #bdc3c7; font-weight: 600; transition: 0.2s; border-bottom: 3px solid transparent; }
+        .tab:hover { background: #3d566e; color: white; }
+        .tab.active { background: var(--white); color: var(--primary); border-bottom-color: var(--accent); }
+        
+        .content { padding: 20px; display: none; }
+        .content.active { display: block; }
+
+        /* СЕТКА НА 3 КОЛОНКИ */
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); /* Всегда 3 колонки */
+            gap: 20px; 
+            margin-bottom: 20px; 
+        }
+        
+        /* На маленьких экранах (планшет/телефон) перестраиваем в 1 колонку */
+        @media (max-width: 1000px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
+
+        .form-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.95em; color: #555; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
+        textarea { resize: vertical; min-height: 80px; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+        .card-section { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 6px; 
+            border: 1px solid #e9ecef;
+            height: 100%; /* Одинаковая высота */
+        }
+        .card-section.pos { border-top: 4px solid #3498db; }
+        .card-section.mech { border-top: 4px solid #e67e22; }
+        .card-section.act { border-top: 4px solid #9b59b6; }
+
+        .action-label { font-size: 0.9em; color: #666; margin-top: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+        .action-count { background: var(--accent); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.85em; }
+        
+        .btn-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        
+        /* КНОПКИ ДЕЙСТВИЙ - ШИРОКИЕ И С ПОЛНЫМ ТЕКСТОМ */
+        .action-btn { 
+            padding: 8px 12px; 
+            border: 1px solid #ced4da; 
+            background: #fff; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 0.9em; 
+            color: #495057; 
+            transition: 0.2s; 
+            flex: 1 1 45%; /* Занимают примерно половину ширины блока */
+            min-width: 140px;
+            text-align: left;
+            white-space: normal; /* Разрешаем перенос текста */
+            line-height: 1.3;
+        }
+        .action-btn:hover { background: #e9ecef; border-color: #adb5bd; }
+        .action-btn.active { 
+            background: #28a745; 
+            color: white; 
+            border-color: #28a745; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .main-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; color: white; transition: 0.2s; font-size: 1em; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-gen { background: var(--accent); }
+        .btn-copy { background: #8e44ad; }
+        .btn-clear { background: #7f8c8d; }
+        .btn-save { background: #27ae60; }
+
+        #preview { 
+            background: #fff; 
+            border: 2px solid #ced4da; 
+            padding: 20px; 
+            min-height: 80px; 
+            white-space: normal; 
+            font-family: 'Segoe UI', sans-serif; 
+            font-size: 1em; 
+            color: #222; 
+            border-radius: 4px; 
+            line-height: 1.6; 
+        }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #27ae60; color: white; padding: 12px 24px; border-radius: 4px; display: none; z-index: 1000; font-size: 1.1em; }
+        .note { font-size: 0.9em; color: #666; margin-top: 10px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Генератор технических заключений</h1>
+        <p>Широкий формат • Мульти-выбор • Excel-совместимость</p>
+    </header>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('gen')"> Генератор</div>
+        <div class="tab" onclick="switchTab('settings')">️ Настройки текста</div>
+    </div>
+
+    <!-- ГЕНЕРАТОР -->
+    <div id="tab-gen" class="content active">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="form-group">
+                <label>ТАГ клапана:</label>
+                <input type="text" id="tag" placeholder="Например: FV-101">
+            </div>
+            <div class="form-group">
+                <label>Дата:</label>
+                <input type="date" id="date">
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="card-section pos">
+                <label style="font-size:1.1em; color:#2c3e50;">ПОЗИЦИОНЕР</label>
+                <div class="form-group" style="margin-top:10px;">
+                    <label>Статус:</label>
+                    <select id="posStatus">
+                        <option value="norm">Норма</option>
+                        <option value="calib">Требуется калибровка</option>
+                        <option value="error">Высокая динам. ошибка</option>
+                        <option value="points">Сбиты крайние точки</option>
+                        <option value="fail">Неисправен</option>
+                    </select>
+                </div>
+                <div class="action-label">
+                    <span>Действия:</span>
+                    <span class="action-count" id="posCount">0</span>
+                </div>
+                <div class="btn-grid" id="posActions"></div>
+            </div>
+
+            <div class="card-section mech">
+                <label style="font-size:1.1em; color:#2c3e50;">МЕХАНИКА</label>
+                <div class="form-group" style="margin-top:10px;">
+                    <label>Статус:</label>
+                    <select id="mechStatus">
+                        <option value="norm">Норма</option>
+                        <option value="friction">Повышенное трение</option>
+                        <option value="stick">Залипание штока</option>
+                        <option value="packing">Проблема с сальником</option>
+                        <option value="wear">Износ уплотнений</option>
+                        <option value="crit">Критический износ</option>
+                    </select>
+                </div>
+                <div class="action-label">
+                    <span>Действия:</span>
+                    <span class="action-count" id="mechCount">0</span>
+                </div>
+                <div class="btn-grid" id="mechActions"></div>
+            </div>
+
+            <div class="card-section act">
+                <label style="font-size:1.1em; color:#2c3e50;">ПРИВОД</label>
+                <div class="form-group" style="margin-top:10px;">
+                    <label>Статус:</label>
+                    <select id="actStatus">
+                        <option value="norm">Норма</option>
+                        <option value="maint">Плановая замена уплотнений</option>
+                        <option value="membrane">Мембрана под вопросом</option>
+                        <option value="fail">Неисправен</option>
+                    </select>
+                </div>
+                <div class="action-label">
+                    <span>Действия:</span>
+                    <span class="action-count" id="actCount">0</span>
+                </div>
+                <div class="btn-grid" id="actActions"></div>
+            </div>
+        </div>
+
+        <div class="main-btn-row">
+            <button class="btn btn-gen" onclick="generateReport()">📄 Сформировать</button>
+            <button class="btn btn-copy" onclick="copyText()">📋 Копировать</button>
+            <button class="btn btn-clear" onclick="clearForm()">🗑 Очистить</button>
+        </div>
+
+        <div style="margin-top:10px;">
+            <label style="font-size:1.1em;">Результат для Excel:</label>
+            <div id="preview">Нажмите "Сформировать"</div>
+        </div>
+        <div class="note">Выбранные действия склеиваются через `; ` для удобства вставки в одну ячейку.</div>
+    </div>
+
+    <!-- НАСТРОЙКИ -->
+    <div id="tab-settings" class="content">
+        <h3 style="margin-bottom:15px; font-size:1.2em;">Редактор формулировок</h3>
+        <p style="margin-bottom:15px; color:#666;">Измените тексты диагнозов. Они сохранятся в браузере.</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <div>
+                <label>Узел:</label>
+                <select id="editNode" onchange="loadEditorOptions()">
+                    <option value="pos">Позиционер</option>
+                    <option value="mech">Механическая часть</option>
+                    <option value="act">Привод</option>
+                </select>
+            </div>
+            <div>
+                <label>Статус:</label>
+                <select id="editStatus" onchange="loadTemplateEditor()"></select>
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+                <button class="btn btn-save" onclick="saveTemplate()" style="width:100%;">💾 Сохранить</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Диагноз (вставляется в отчет):</label>
+            <textarea id="editDiag" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Рекомендация (справочно):</label>
+            <textarea id="editRec" rows="2"></textarea>
+        </div>
+        <div class="main-btn-row">
+             <button class="btn btn-clear" onclick="resetTemplates()">↺ Сбросить тексты</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">Готово!</div>
+
+<script>
+    // --- СПИСКИ ДЕЙСТВИЙ ---
+    const actions = {
+        pos: [
+            "Выполнить калибровку по эталонному сигналу 4-20 мА",
+            "Настроить ПИД-параметры и зону нечувствительности",
+            "Откалибровать нулевую и полную шкалу положения",
+            "Заменить датчик обратной связи (потенциометр/бесконтактный)",
+            "Заменить электропневматический преобразователь (I/P)",
+            "Продуть пневматические каналы и заменить фильтрующий элемент",
+            "Проверить и отрегулировать рычажную систему обратной связи",
+            "Обновить программное обеспечение контроллера позиционера",
+            "Заменить модуль управления в сборе",
+            "Выполнить тест гистерезиса и повторяемости"
+        ],
+        mech: [
+            "Выполнить полную разборку и дефектацию узлов",
+            "Очистить внутренние полости от отложений и коррозии",
+            "Заменить сальниковую набивку и уплотнительные кольца",
+            "Выполнить притирку пары «плунжер-седло»",
+            "Заменить комплект запорной арматуры (trim)",
+            "Отрегулировать затяжку сальниковой камеры",
+            "Заменить направляющие втулки и подшипники скольжения",
+            "Полировать шток и проверить геометрию на биение",
+            "Заменить корпусные прокладки и крепеж",
+            "Выполнить гидравлические испытания на герметичность"
+        ],
+        act: [
+            "Заменить мембрану привода в сборе",
+            "Заменить возвратные пружины и отрегулировать предварительное сжатие",
+            "Заменить уплотнительный комплект пневмокамеры",
+            "Заменить поршневые кольца и цилиндр (для поршневых приводов)",
+            "Отрегулировать концевые положения и ограничители хода",
+            "Заменить электромагнитный клапан (соленоид) и фильтры-редукторы",
+            "Выполнить смазку подвижных соединений и штока",
+            "Проверить герметичность пневматической камеры под давлением",
+            "Заменить блок индикации положения и концевые выключатели",
+            "Выполнить полную ревизию и покраску антикоррозийным составом"
+        ]
+    };
+
+    const defaultTemplates = {
+        pos: {
+            norm: { d: "Параметры в норме.", r: "Плановый контроль." },
+            calib: { d: "Смещение калибровочных точек. Рассогласование сигнала и положения.", r: "Юстировка и калибровка шкалы." },
+            error: { d: "Превышено время отклика. Колебания в установившемся режиме.", r: "Продувка каналов, настройка ПИД." },
+            points: { d: "Нарушены крайние положения 0% и 100%.", r: "Восстановление шкалы." },
+            fail: { d: "Нестабильный сигнал или отсутствие реакции.", r: "Замена/ремонт позиционера." }
+        },
+        mech: {
+            norm: { d: "Герметичность и ход в допуске. Повреждений нет.", r: "Ремонт не требуется." },
+            friction: { d: "Усилие на штоке превышает норму. Износ/загрязнение уплотнений.", r: "Дефектация, очистка, замена набивки." },
+            stick: { d: "Запорный орган не выходит на заданное положение. Отложения/коррозия.", r: "Ревизия запорного органа, очистка." },
+            packing: { d: "Избыточная затяжка сальниковой камеры. Риск заклинивания.", r: "Регулировка затяжки сальника." },
+            wear: { d: "Нарушение герметичности по штоку. Износ набивки.", r: "Замена уплотнений." },
+            crit: { d: "Геометрия плунжера/седла не соответствует допускам. Эрозия/задиры.", r: "Капитальный ремонт или замена." }
+        },
+        act: {
+            norm: { d: "Давление и прожатие пружин в норме. Мембрана цела.", r: "Контроль в рамках ТО." },
+            maint: { d: "Истек регламент замены уплотнений. Старение резины.", r: "Замена по регламенту." },
+            membrane: { d: "Микротрещины или потертости мембраны. Риск утечки.", r: "Осмотр, замена при дефекте." },
+            fail: { d: "Утечка или разрушение пружин. Шток неподвижен.", r: "Ремонт/замена привода." }
+        }
+    };
+
+    let templates = {};
+    let selectedActions = { pos: [], mech: [], act: [] };
+
+    // --- ИНИЦИАЛИЗАЦИЯ ---
+    window.onload = function() {
+        document.getElementById('date').valueAsDate = new Date();
+        loadTemplates();
+        renderActionButtons();
+        loadEditorOptions();
+    };
+
+    function loadTemplates() {
+        const saved = localStorage.getItem('valveTemplates_v7');
+        templates = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(defaultTemplates));
+    }
+
+    function renderActionButtons() {
+        ['pos', 'mech', 'act'].forEach(type => {
+            const container = document.getElementById(type + 'Actions');
+            container.innerHTML = '';
+            actions[type].forEach(action => {
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.textContent = action; // Полный текст, без обрезки
+                btn.dataset.val = action;
+                btn.dataset.type = type;
+                btn.title = action;
+
+                btn.onclick = function() {
+                    this.classList.toggle('active');
+                    const type = this.dataset.type;
+                    if (this.classList.contains('active')) {
+                        selectedActions[type].push(this.dataset.val);
+                    } else {
+                        selectedActions[type] = selectedActions[type].filter(v => v !== this.dataset.val);
+                    }
+                    document.getElementById(type + 'Count').textContent = selectedActions[type].length;
+                };
+                container.appendChild(btn);
+            });
+            document.getElementById(type + 'Count').textContent = '0';
+        });
+    }
+
+    // --- ГЕНЕРАЦИЯ (EXCEL-ФОРМАТ) ---
+    function generateReport() {
+        const tag = document.getElementById('tag').value.trim() || 'БЕЗ НОМЕРА';
+        const date = document.getElementById('date').value;
+        const pStat = document.getElementById('posStatus').value;
+        const mStat = document.getElementById('mechStatus').value;
+        const aStat = document.getElementById('actStatus').value;
+
+        const allOk = (pStat === 'norm' && mStat === 'norm' && aStat === 'norm');
+        let text = `ТАГ: ${tag} | Дата: ${date} | `;
+
+        if (allOk) {
+            text += `Заключение: состояние удовлетворительное. Все узлы в норме. Отклонений не выявлено. Рекомендуется плановый контроль.`;
+        } else {
+            let parts = [];
+            if (pStat !== 'norm') {
+                const acts = selectedActions.pos.length > 0 ? selectedActions.pos.join('; ') : 'требуется диагностика';
+                parts.push(`Позиционер: ${document.getElementById('posStatus').selectedOptions[0].text}. ${templates.pos[pStat].d} Требуется: ${acts}.`);
+            }
+            if (mStat !== 'norm') {
+                const acts = selectedActions.mech.length > 0 ? selectedActions.mech.join('; ') : 'требуется диагностика';
+                parts.push(`Механика: ${document.getElementById('mechStatus').selectedOptions[0].text}. ${templates.mech[mStat].d} Требуется: ${acts}.`);
+            }
+            if (aStat !== 'norm') {
+                const acts = selectedActions.act.length > 0 ? selectedActions.act.join('; ') : 'требуется диагностика';
+                parts.push(`Привод: ${document.getElementById('actStatus').selectedOptions[0].text}. ${templates.act[aStat].d} Требуется: ${acts}.`);
+            }
+            text += `Заключение: выявлены отклонения. ${parts.join(' ')} Итог: требуется обслуживание.`;
+        }
+
+        document.getElementById('preview').textContent = text;
+        return text;
+    }
+
+    // --- ИНТЕРФЕЙС ---
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        if (tab === 'gen') {
+            document.querySelectorAll('.tab')[0].classList.add('active');
+            document.getElementById('tab-gen').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            document.getElementById('tab-settings').classList.add('active');
+            loadEditorOptions(); loadTemplateEditor();
+        }
+    }
+
+    function copyText() {
+        const txt = document.getElementById('preview').textContent;
+        if(txt.includes('Нажмите')) return;
+        navigator.clipboard.writeText(txt).then(() => toast('Скопировано'));
+    }
+
+    function clearForm() {
+        document.getElementById('tag').value = '';
+        document.getElementById('date').valueAsDate = new Date();
+        ['pos','mech','act'].forEach(t => document.getElementById(t+'Status').value = 'norm');
+        ['pos','mech','act'].forEach(type => {
+            selectedActions[type] = [];
+            document.getElementById(type + 'Actions').querySelectorAll('.action-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(type + 'Count').textContent = '0';
+        });
+        document.getElementById('preview').textContent = 'Нажмите "Сформировать"';
+    }
+
+    function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 1500);
+    }
+
+    // --- РЕДАКТОР ---
+    function loadEditorOptions() {
+        const node = document.getElementById('editNode').value;
+        const sel = document.getElementById('editStatus');
+        sel.innerHTML = '';
+        const map = {
+            pos: [ {v:"norm",t:"Норма"}, {v:"calib",t:"Калибровка"}, {v:"error",t:"Динам.ошибка"}, {v:"points",t:"Сбиты точки"}, {v:"fail",t:"Неисправен"} ],
+            mech: [ {v:"norm",t:"Норма"}, {v:"friction",t:"Трение"}, {v:"stick",t:"Залипание"}, {v:"packing",t:"Сальник"}, {v:"wear",t:"Износ"}, {v:"crit",t:"Крит.износ"} ],
+            act: [ {v:"norm",t:"Норма"}, {v:"maint",t:"План.замена"}, {v:"membrane",t:"Мембрана"}, {v:"fail",t:"Неисправен"} ]
+        };
+        map[node].forEach(o => {
+            let opt = document.createElement('option');
+            opt.value = o.v; opt.textContent = o.t;
+            sel.appendChild(opt);
+        });
+    }
+
+    function loadTemplateEditor() {
+        const node = document.getElementById('editNode').value;
+        const status = document.getElementById('editStatus').value;
+        document.getElementById('editDiag').value = templates[node][status].d;
+        document.getElementById('editRec').value = templates[node][status].r;
+    }
+
+    function saveTemplate() {
+        const node = document.getElementById('editNode').value;
+        const status = document.getElementById('editStatus').value;
+        templates[node][status].d = document.getElementById('editDiag').value;
+        templates[node][status].r = document.getElementById('editRec').value;
+        localStorage.setItem('valveTemplates_v7', JSON.stringify(templates));
+        toast('Шаблон сохранен');
+    }
+
+    function resetTemplates() {
+        if(confirm('Сбросить тексты на исходные?')) {
+            localStorage.removeItem('valveTemplates_v7');
+            templates = JSON.parse(JSON.stringify(defaultTemplates));
+            loadTemplateEditor();
+            toast('Сброс выполнен');
+        }
+    }
+
+    document.getElementById('editNode').addEventListener('change', function() { loadEditorOptions(); loadTemplateEditor(); });
+</script>
+</body>
+</html>
